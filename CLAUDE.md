@@ -6,6 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Landing page built with [Astro](https://astro.build) (static site generator) and [Sanity](https://sanity.io) as the headless CMS.
 
+## Deployment
+
+- **Public site** (`src/`): deployed on Vercel (project `limbo`), domain `limbomezcal.com`. Auto-deploys on push to `main`. A Sanity webhook triggers a rebuild when content is published.
+- **Studio** (`studio/`): hosted by Sanity at `limbo.sanity.studio`. Deploy with `cd studio && npx sanity deploy` (NOT via Vercel — the Vercel build of `sanity build` fails with "CLI config cannot be loaded"). `autoUpdates` is disabled in `studio/sanity.cli.js`.
+
 ## Commands
 
 > Node >=22 is required. If you get an engine warning, run `nvm use 22` first.
