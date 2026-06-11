@@ -1,0 +1,45 @@
+---
+import { sanityClient, urlFor } from "../lib/sanity";
+
+// Expected Sanity document type: "landingPage" (singleton)
+const page = await sanityClient
+  .fetch<{
+    title: string;
+    subtitle: string;
+    ctaLabel: string;
+    ctaUrl: string;
+    heroImage?: { asset: { _ref: string } };
+  }>(`*[_type == "landingPage"][0]`)
+  .catch(() => null);
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{page?.title ?? "Landing Page"}</title>
+  </head>
+  <body>
+    <main>
+      {
+        page ? (
+          <>
+            {page.heroImage && (
+              <img
+                src={urlFor(page.heroImage).width(1200).url()}
+                alt="Hero"
+              />
+            )}
+            <h1>{page.title}</h1>
+            <p>{page.subtitle}</p>
+            <a href={page.ctaUrl}>{page.ctaLabel}</a>
+          </>
+        ) : (
+          <p>Add a "landingPage" document in Sanity Studio to get started.</p>
+        )
+      }
+    </main>
+  </body>
+</html>
