@@ -7,9 +7,10 @@ export default defineCliConfig({
   },
   deployment: {
     /**
-     * Enable auto-updates for studios.
-     * Learn more at https://www.sanity.io/docs/studio/latest-version-of-sanity#k47faf43faf56
+     * Auto-updates disabled: we deploy via git/Vercel, so the studio bundle
+     * should be self-contained and not fetch an update manifest at build time
+     * (that network step fails in CI).
      */
-    autoUpdates: true,
+    autoUpdates: false,
   }
 })
