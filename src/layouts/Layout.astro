@@ -1,0 +1,79 @@
+---
+// ─── LAYOUT (el marco común de todas las páginas) ────────────────────────────
+// Un "layout" es un componente que envuelve a las páginas para no repetir en
+// cada una el <html>, <head>, la cabecera y el pie. Cada página solo escribe su
+// contenido propio y lo mete dentro de <Layout>…</Layout>.
+//
+// Técnicamente un layout es un componente .astro normal; lo llamamos "layout"
+// por convención (vive en src/layouts/) porque su trabajo es envolver páginas.
+
+import '../styles/global.css'; // Importa los estilos globales (Tailwind + tokens).
+                               // Basta importarlo una vez aquí: como TODAS las
+                               // páginas usan este Layout, el CSS llega a todas.
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import InstaFeed from '../components/InstaFeed.astro';
+
+// ── PROPS ────────────────────────────────────────────────────────────────────
+// Las "props" son los datos que una página le pasa a este Layout, como los
+// atributos de una etiqueta HTML: <Layout title="…" dark />.
+//
+// Esta interface declara qué props acepta el Layout y de qué tipo. El `?`
+// significa "opcional". TypeScript avisará si una página pasa una prop que no
+// existe o con el tipo equivocado.
+interface Props {
+  title: string;
+  description?: string;
+  dark?: boolean; // si true, la página usa el tema oscuro (Convocatoria)
+  /** Oculta el feed de Instagram previo al footer */
+  noFeed?: boolean;
+}
+
+// `Astro.props` contiene los valores que pasó la página. Aquí los desestructuramos
+// (sacamos cada campo a su propia variable) y damos valores por defecto para los
+// opcionales: si la página no pasa `dark`, vale `false`.
+const {
+  title,
+  description = 'Limbo Mezcal — mezcal artesanal y ancestral de Durango y Oaxaca.',
+  dark = false,
+  noFeed = false,
+} = Astro.props;
+---
+
+<!-- lang="es" ayuda a buscadores y lectores de pantalla a saber el idioma. -->
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- viewport: imprescindible para que el responsive funcione en móvil. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <!-- {description} y {title} insertan las variables del frontmatter en el HTML.
+         Cada página manda su propio title → mejor SEO y mejores pestañas. -->
+    <meta name="description" content={description} />
+    <title>{title}</title>
+  </head>
+
+  <!-- class:list es un helper de Astro para construir la lista de clases. Acepta
+       un array y va uniendo lo que sea "verdadero". Aquí el operador ternario
+       `condición ? A : B` elige el par de clases según el tema:
+       oscuro → fondo tinta + texto crema; claro → al revés. -->
+  <body class:list={[dark ? 'bg-ink text-cream' : 'bg-cream text-ink']}>
+    <!-- Le pasamos `dark` al Header para que él también se pinte claro u oscuro. -->
+    <Header dark={dark} />
+
+    <main>
+      <!-- <slot /> es el HUECO donde Astro inserta el contenido que la página
+           escribió entre <Layout>…</Layout>. Es la pieza clave del layout:
+           todo lo propio de cada página entra justo aquí. -->
+      <slot />
+    </main>
+
+    <!-- Renderizado condicional: `{condición && <Componente />}` muestra el
+         componente SOLO si la condición es cierta. Aquí, el feed aparece salvo
+         que la página pida `noFeed` (mezcales y proceso lo ocultan). -->
+    {!noFeed && <InstaFeed dark={dark} />}
+
+    <Footer dark={dark} />
+  </body>
+</html>

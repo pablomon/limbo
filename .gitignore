@@ -22,3 +22,9 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# claude code local settings
+.claude/settings.local.json
+
+# design reference (13MB PDF) — kept local, not versioned. Use Git LFS if needed.
+cliente/

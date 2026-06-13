@@ -1,0 +1,117 @@
+/* ─── ESTILOS GLOBALES ─────────────────────────────────────────────────────────
+   Este archivo se importa una vez en el Layout, así que afecta a todo el sitio.
+
+   @import 'tailwindcss' carga Tailwind entero. Los otros dos imports traen las
+   tipografías (paquetes @fontsource): así las fuentes se sirven desde nuestro
+   propio sitio, sin depender de Google Fonts. */
+@import 'tailwindcss';
+@import '@fontsource-variable/josefin-sans';
+@import '@fontsource-variable/jost';
+
+/*
+  Tokens de diseño extraídos de cliente/WEB LIMBO prueba.pdf
+  - cream      #FFFCF2  fondo general
+  - sage       #C9CDBD  bandas verdes (claim, polinizadores)
+  - terracotta #CD774D  acento (nav activo, bloques nosotros, banda carrusel, mapa)
+  - ink        #252422  texto y fondo de la página Convocatoria
+  Tipografías del PDF: NeutraDisp-BoldAlt (titulares) y BrownStd (cuerpo).
+  Sustitutos libres: Josefin Sans (display) y Jost (body).
+*/
+/* @theme es la novedad de Tailwind v4: aquí defines tu sistema de diseño como
+   variables CSS. Lo potente es que Tailwind GENERA CLASES a partir de ellas:
+   al declarar --color-sage, automáticamente existen bg-sage, text-sage,
+   border-sage… Igual con --font-display → font-display, y --tracking-nav →
+   tracking-nav. Cambiar un color del diseño aquí lo cambia en toda la web. */
+@theme {
+  --color-cream: #fffcf2;
+  /* igualado al fondo de los exports del cliente (mexico-dkt.png) */
+  --color-sage: #c2c6b5;
+  --color-terracotta: #cd774d;
+  --color-ink: #252422;
+
+  /* Dos familias: "display" para titulares, "body" para texto. Las clases
+     font-display / font-body las usamos por todo el HTML. */
+  --font-display: 'Josefin Sans Variable', 'Josefin Sans', sans-serif;
+  --font-body: 'Jost Variable', 'Jost', sans-serif;
+
+  /* Espaciado entre letras (letter-spacing) propio del diseño → clases
+     tracking-nav y tracking-wide-caps. */
+  --tracking-nav: 0.08em;
+  --tracking-wide-caps: 0.14em;
+}
+
+/* Estilos base del documento: color de fondo, color de texto y tipografía por
+   defecto, leídos de los tokens de @theme con var(). scroll-behavior: smooth
+   hace que los saltos a anclas (#seccion) se animen en vez de teletransportar. */
+html {
+  background-color: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  scroll-behavior: smooth;
+}
+
+/* Accesibilidad: si el usuario pidió "reducir movimiento" en su sistema,
+   desactivamos el scroll animado. Repetimos esta cortesía con cada animación. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ── Animación de los visores <dialog> ───────────────────────────────────────
+   (obras de la convocatoria y fotos de la home): fundido + zoom sutil al abrir
+   y al cerrar. Lo definimos UNA vez aquí y lo heredan todos los <dialog>.
+
+   Animar un <dialog> tiene truco porque pasa de display:none a visible:
+   · @starting-style define el estado DESDE el que arranca la animación de
+     entrada (sin él, el navegador no animaría la aparición).
+   · transition de `display` y `overlay` con `allow-discrete` permite animar
+     la salida antes de que el elemento desaparezca del todo. */
+@media (prefers-reduced-motion: no-preference) {
+  dialog {
+    opacity: 0;
+    transform: scale(0.96);
+    transition:
+      opacity 0.25s ease,
+      transform 0.25s ease,
+      overlay 0.25s ease allow-discrete,
+      display 0.25s ease allow-discrete;
+  }
+
+  dialog[open] {
+    opacity: 1;
+    transform: none;
+  }
+
+  @starting-style {
+    dialog[open] {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+  }
+
+  dialog::backdrop {
+    background-color: transparent;
+    transition:
+      background-color 0.25s ease,
+      overlay 0.25s ease allow-discrete,
+      display 0.25s ease allow-discrete;
+  }
+
+  dialog[open]::backdrop {
+    background-color: --alpha(var(--color-ink) / 90%);
+  }
+
+  @starting-style {
+    dialog[open]::backdrop {
+      background-color: transparent;
+    }
+  }
+}
+
+/* fondo del visor cuando las animaciones están desactivadas */
+@media (prefers-reduced-motion: reduce) {
+  dialog::backdrop {
+    background-color: --alpha(var(--color-ink) / 90%);
+  }
+}

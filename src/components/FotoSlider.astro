@@ -1,0 +1,293 @@
+---
+/*
+  ─── COMPONENTE FotoSlider (carrusel automático de fotos) ──────────────────────
+
+  Slider de fotos en marquesina: se desliza solo hacia la izquierda de forma
+  continua y lenta, en bucle infinito. Se pausa mientras el ratón está encima
+  y se reanuda al salir. Se puede arrastrar (ratón o dedo), las flechas avanzan
+  una foto y cada foto se abre a pantalla completa al clicarla. Con
+  prefers-reduced-motion (ajuste del sistema "reducir movimiento") no hay
+  movimiento automático.
+
+  Este archivo tiene las DOS mitades de Astro bien diferenciadas:
+   · El frontmatter (aquí) y la plantilla generan el HTML en BUILD.
+   · El <script> del final corre en el NAVEGADOR y da vida al carrusel.
+*/
+interface Foto {
+  src: string;
+  alt: string;
+}
+interface Props {
+  fotos: Foto[];
+}
+const { fotos } = Astro.props;
+
+// Para que el bucle infinito no muestre huecos, repetimos el set de fotos varias
+// veces. Calculamos cuántas copias hacen falta para cubrir pantallas anchas:
+// al menos 2, y más si hay pocas fotos. Math.ceil redondea hacia arriba.
+const copias = Math.max(2, Math.ceil(8 / Math.max(fotos.length, 1)));
+---
+
+<section id="fotos" class="relative bg-terracotta py-10" aria-label="Fotografías del campo y los maestros">
+  <!-- data-slider es un "atributo de datos": no cambia el aspecto, solo sirve
+       como ETIQUETA para que el <script> encuentre este elemento con
+       querySelector('[data-slider]'). Es una alternativa a usar id. -->
+  <div
+    data-slider
+    class="flex cursor-grab gap-6 overflow-x-auto px-6 select-none data-dragging:cursor-grabbing [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+  >
+    {
+      /*
+        Doble bucle anidado generado en BUILD (ojo: aquí dentro estamos en una
+        expresión JSX, así que los comentarios DEBEN ir entre llaves como este;
+        un // o un <!-- --> entre atributos rompería el HTML):
+         - el exterior repite el set `copias` veces (c = 0,1,2…),
+         - el interior recorre las fotos.
+        El resultado es una tira larga de fotos repetidas.
+
+        data-set: marcamos solo la PRIMERA copia (c===0) como "original"; el
+          script mide el ancho de ese set para saber cuándo reiniciar el bucle.
+        aria-hidden + tabindex=-1 en las copias (c>0): son duplicados
+          decorativos, así que las ocultamos a lectores de pantalla y al
+          tabulador para no repetir las fotos en accesibilidad.
+        pointer-events-none en la <img>: los clics "atraviesan" la imagen y los
+          recibe el <button>, simplificando la detección del clic.
+      */
+      Array.from({ length: copias }, (_, c) =>
+        fotos.map((f) => (
+          <button
+            type="button"
+            data-foto
+            data-set={c === 0 ? 'original' : undefined}
+            aria-hidden={c > 0 ? 'true' : undefined}
+            tabindex={c > 0 ? -1 : undefined}
+            class="w-[85%] max-w-xl shrink-0 cursor-zoom-in sm:w-[45%]"
+            aria-label={c === 0 ? `Ver a pantalla completa: ${f.alt}` : undefined}
+          >
+            <img
+              src={f.src}
+              alt={c === 0 ? f.alt : ''}
+              class="pointer-events-none aspect-[5/4] w-full object-cover"
+              draggable="false"
+              loading="lazy"
+            />
+          </button>
+        ))
+      )
+    }
+  </div>
+
+  <!-- Flechas. hidden sm:block = ocultas en móvil (allí se arrastra con el dedo),
+       visibles desde 640px. &#8249; y &#8250; son los caracteres ‹ y ›. -->
+  <button
+    type="button"
+    data-slider-prev
+    class="absolute left-2 top-1/2 hidden -translate-y-1/2 p-2 text-3xl text-cream transition-opacity hover:opacity-70 sm:block lg:left-4"
+    aria-label="Foto anterior"
+  >
+    &#8249;
+  </button>
+  <button
+    type="button"
+    data-slider-next
+    class="absolute right-2 top-1/2 hidden -translate-y-1/2 p-2 text-3xl text-cream transition-opacity hover:opacity-70 sm:block lg:right-4"
+    aria-label="Foto siguiente"
+  >
+    &#8250;
+  </button>
+</section>
+
+<!-- Visor de foto a pantalla completa.
+     <dialog> es un elemento nativo del navegador para modales: trae gratis el
+     fondo oscurecido (::backdrop), el cierre con la tecla Escape y el foco
+     atrapado dentro. Lo abrimos con .showModal() desde el script. La animación
+     de apertura/cierre está en global.css. -->
+<dialog id="visor-foto" class="h-screen max-h-none w-screen max-w-none bg-ink/95 p-0">
+  <button
+    type="button"
+    data-visor-cerrar
+    class="fixed top-4 right-5 z-10 p-2 font-display text-4xl/none text-cream transition-opacity hover:opacity-70"
+    aria-label="Cerrar"
+  >
+    &times;
+  </button>
+  <img data-visor-img src="" alt="" class="h-full w-full object-contain" />
+</dialog>
+
+<!-- ── SCRIPT DE CLIENTE ───────────────────────────────────────────────────────
+     Corre en el NAVEGADOR. Aquí vive toda la interactividad del slider. -->
+<script>
+  // querySelector busca el primer elemento que case con el selector CSS.
+  // El `!` final le dice a TypeScript "fíate, esto no es null" (sabemos que el
+  // div existe). El <HTMLElement> es el tipo del elemento devuelto.
+  const track = document.querySelector<HTMLElement>('[data-slider]')!;
+  const VELOCIDAD = 25; // píxeles por segundo del desplazamiento automático
+
+  // Mide el ancho de UN set de fotos (las marcadas como "original" + sus huecos).
+  // Ese ancho es la distancia tras la cual el bucle puede reiniciarse sin que se
+  // note, porque a partir de ahí empiezan las copias idénticas.
+  const setWidth = () => {
+    const originales = track.querySelectorAll<HTMLElement>('[data-set="original"]');
+    const gap = parseFloat(getComputedStyle(track).columnGap || '0');
+    // reduce recorre las fotos sumando ancho + hueco de cada una.
+    return [...originales].reduce((w, el) => w + el.offsetWidth + gap, 0);
+  };
+  // Ancho de un "paso" de flecha: una foto + un hueco.
+  const step = () => {
+    const first = track.firstElementChild as HTMLElement | null;
+    return first ? first.offsetWidth + parseFloat(getComputedStyle(track).columnGap || '0') : 0;
+  };
+
+  // EL TRUCO DEL BUCLE INFINITO: cuando el scroll sale del primer set, lo
+  // movemos un set entero hacia atrás (o adelante). Como el contenido siguiente
+  // es idéntico, el salto es invisible y parece infinito en ambos sentidos.
+  const normaliza = () => {
+    const w = setWidth();
+    if (w <= 0) return;
+    if (track.scrollLeft >= w) track.scrollLeft -= w;
+    else if (track.scrollLeft <= 0) track.scrollLeft += w;
+  };
+
+  // ── Estado de pausa ──────────────────────────────────────────────────────
+  // La marquesina se detiene en tres casos: ratón encima (hover), arrastre en
+  // curso (arrastrando), o pausa temporal tras usar flecha/rueda (pausaTemp).
+  let hover = false;
+  let arrastrando = false;
+  let pausaTemp = false;
+  let timerPausa: ReturnType<typeof setTimeout> | undefined;
+  // pausa(ms): activa la pausa temporal y la levanta sola pasados `ms`
+  // milisegundos. clearTimeout cancela un temporizador anterior si lo hubiera.
+  const pausa = (ms: number) => {
+    pausaTemp = true;
+    clearTimeout(timerPausa);
+    timerPausa = setTimeout(() => (pausaTemp = false), ms);
+  };
+
+  // matchMedia consulta una media query desde JS. Aquí, si el usuario tiene
+  // activado "reducir movimiento" en su sistema, no animamos.
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ── Bucle de animación ─────────────────────────────────────────────────────
+  // Guardamos la posición en un float aparte porque scrollLeft redondea a enteros
+  // y, a ~0,4px por frame, perderíamos casi todo el avance por el redondeo.
+  let pos = track.scrollLeft;
+  // factor de velocidad 0..1 con suavizado (easing): en vez de arrancar/parar de
+  // golpe, sube y baja en rampa. El arrastre lo pone a 0 en seco (ver más abajo).
+  let factor = 1;
+  let anterior = performance.now();
+
+  // requestAnimationFrame llama a `avanza` antes de cada repintado (~60 veces por
+  // segundo). Es la forma correcta de animar: se sincroniza con la pantalla y se
+  // pausa solo si la pestaña no está visible.
+  const avanza = (ahora: number) => {
+    const dt = (ahora - anterior) / 1000; // segundos transcurridos desde el frame previo
+    anterior = ahora;
+    // Objetivo del factor: 0 si hay que parar, 1 si hay que moverse.
+    const objetivo = hover || arrastrando || pausaTemp || reduceMotion ? 0 : 1;
+    // Acercamos `factor` a su objetivo un poco cada frame → rampa suave.
+    factor += (objetivo - factor) * Math.min(1, dt * 2.5);
+    if (arrastrando || (objetivo === 0 && factor < 0.01)) {
+      // Detenido o con el usuario interactuando: la posición real (que pudo
+      // cambiar por arrastre) manda; resincronizamos `pos` con ella.
+      factor = arrastrando ? 0 : factor;
+      pos = track.scrollLeft;
+    } else {
+      // En marcha: avanzamos según velocidad × factor × tiempo.
+      pos += VELOCIDAD * factor * dt;
+      const w = setWidth();
+      if (w > 0 && pos >= w) pos -= w; // reinicio invisible del bucle
+      track.scrollLeft = pos;
+    }
+    requestAnimationFrame(avanza); // encadena el siguiente frame
+  };
+  requestAnimationFrame(avanza); // arranca el bucle
+
+  // ── Pausa por hover ─────────────────────────────────────────────────────────
+  // pointerenter/leave cubren ratón, lápiz y táctil; filtramos solo el ratón
+  // porque en táctil no existe el concepto de "estar encima sin tocar".
+  track.addEventListener('pointerenter', (e) => {
+    if (e.pointerType === 'mouse') hover = true;
+  });
+  track.addEventListener('pointerleave', (e) => {
+    if (e.pointerType === 'mouse') hover = false;
+  });
+
+  // ── Flechas ─────────────────────────────────────────────────────────────────
+  // scrollBy desplaza de forma relativa; behavior:'smooth' lo hace con animación.
+  document.querySelector('[data-slider-prev]')?.addEventListener('click', () => {
+    pausa(1500); // pausa breve tras pulsar, para que se aprecie el salto
+    track.scrollBy({ left: -step(), behavior: 'smooth' });
+  });
+  document.querySelector('[data-slider-next]')?.addEventListener('click', () => {
+    pausa(1500);
+    track.scrollBy({ left: step(), behavior: 'smooth' });
+  });
+
+  // Rueda/trackpad horizontal: pausamos un momento para no pelear con el usuario.
+  // { passive: true } promete que no llamaremos preventDefault → scroll más fluido.
+  track.addEventListener('wheel', () => pausa(2000), { passive: true });
+
+  // ── Arrastre con ratón ──────────────────────────────────────────────────────
+  // `dragged` distingue un clic de un arrastre: si hubo arrastre, NO abrimos el
+  // visor al soltar (ver el listener de [data-foto] más abajo).
+  let dragged = false;
+  track.addEventListener('pointerdown', (e) => {
+    factor = 0; // parada en seco: que la inercia no luche con el gesto
+    if (e.pointerType !== 'mouse') {
+      // En táctil dejamos que el navegador desplace de forma nativa; solo
+      // pausamos el auto-scroll un rato.
+      pausa(2500);
+      return;
+    }
+    arrastrando = true;
+    dragged = false;
+    const inicioX = e.clientX;
+    let ultimaX = e.clientX;
+    track.dataset.dragging = ''; // activa la clase CSS data-dragging:* (cursor, snap)
+
+    // Movemos por DELTAS (diferencia respecto al último punto), no respecto al
+    // origen: así el bucle puede "envolver" a mitad de arrastre sin dar un salto.
+    const move = (ev: PointerEvent) => {
+      if (Math.abs(ev.clientX - inicioX) > 3) dragged = true; // umbral: 3px = arrastre
+      track.scrollLeft -= ev.clientX - ultimaX;
+      ultimaX = ev.clientX;
+      normaliza();
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      delete track.dataset.dragging;
+      arrastrando = false;
+      // Liberamos `dragged` en el siguiente "tick" (setTimeout 0): así sigue en
+      // true durante el evento click que el navegador dispara justo tras soltar,
+      // y ese clic no abre el visor. Después vuelve a false.
+      setTimeout(() => (dragged = false), 0);
+    };
+    // Escuchamos en `window`, no en `track`: si el ratón se sale del slider
+    // mientras arrastras, seguimos recibiendo el movimiento. { once: true } hace
+    // que el listener se borre solo tras dispararse una vez.
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up, { once: true });
+    window.addEventListener('pointercancel', up, { once: true });
+  });
+
+  // ── Visor a pantalla completa ───────────────────────────────────────────────
+  const visor = document.getElementById('visor-foto') as HTMLDialogElement;
+  const visorImg = visor.querySelector('[data-visor-img]') as HTMLImageElement;
+
+  // A cada foto le ponemos un clic que copia su imagen al visor y lo abre.
+  track.querySelectorAll<HTMLButtonElement>('[data-foto]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (dragged) return; // si venimos de arrastrar, no abrimos
+      const img = btn.querySelector('img')!;
+      visorImg.src = img.src;
+      visorImg.alt = img.alt;
+      visor.showModal(); // abre el <dialog> como modal
+    });
+  });
+  visor.querySelector('[data-visor-cerrar]')?.addEventListener('click', () => visor.close());
+  // Clic en el fondo (fuera de la imagen) también cierra: e.target === visor
+  // significa que el clic fue en el propio <dialog>, no en su contenido.
+  visor.addEventListener('click', (e) => {
+    if (e.target === visor) visor.close();
+  });
+</script>

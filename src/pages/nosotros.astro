@@ -1,0 +1,54 @@
+---
+// ─── PÁGINA /nosotros ────────────────────────────────────────────────────────
+// Página solo de texto: no necesita datos en el frontmatter, únicamente importa
+// el Layout. Es la prueba de que una página puede ser HTML casi puro envuelto en
+// el marco común. Dos secciones: el bloque de origen (sobre terracotta) y la
+// historia (sobre el fondo crema por defecto).
+
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Nosotros — Limbo Mezcal">
+  <h1 class="sr-only">Nosotros</h1>
+
+  <!-- Bloque destacado de origen. space-y-6 separa los párrafos entre sí;
+       max-w-2xl limita el ancho del texto para que sea cómodo de leer. -->
+  <section id="origen" class="bg-terracotta">
+    <div class="mx-auto max-w-2xl space-y-6 px-6 py-14 text-justify text-lg/relaxed sm:py-16">
+      <p>
+        <strong class="font-semibold">Limbo Mezcal</strong> nace tras una residencia en Durango.
+        Allí, tras descubrir que, más allá de su encantador e inhóspito paisaje, se ocultaba un
+        brebaje peculiar y seductor que me conquistó, inicié este proyecto.
+      </p>
+      <p>
+        Limbo se erige como un puente sensorial, difundiendo los sabores, aromas y texturas que
+        emanan de nuestras raíces y nuestra tierra.
+      </p>
+    </div>
+  </section>
+
+  <!-- Historia y filosofía -->
+  <section id="historia" class="mx-auto max-w-2xl space-y-7 px-6 py-14 text-justify text-lg/relaxed sm:py-16">
+    <p>
+      Mi trabajo se ha centrado en una visión que trasciende la producción en serie y va más allá
+      de una mera intención comercializadora. De la mano de las y los maestros mezcaleros
+      —custodios de saberes transmitidos por generaciones (algunos dedicados por más de cinco
+      generaciones a honrar la tierra)—, Limbo nos invita a ser partícipes de un legado vivo.
+    </p>
+    <p>
+      Consciente del ciclo vital, Limbo devuelve a la tierra lo que generosamente nos ofrece,
+      emprendiendo la noble tarea de la resiembra de magueyes y velando por un impacto ecológico
+      suave y respetuoso.
+    </p>
+    <p>
+      Cada etapa, desde su cosecha hasta el envasado y distribución, se realiza con esmero,
+      asegurando la calidad originaria y el sabor auténtico que definen este mezcal.
+    </p>
+    <p>
+      <strong class="font-semibold">Miriam Cabrera Luna</strong>, fundadora de Limbo Mezcal, en un
+      gesto de gratitud hacia su pasión primigenia —la restauración de arte—, convoca a artistas e
+      ilustradores para vestir las botellas de Limbo con obras efímeras, celebrando así la unión
+      entre el espíritu ancestral del mezcal y la expresión artística contemporánea.
+    </p>
+  </section>
+</Layout>

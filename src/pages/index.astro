@@ -1,45 +1,158 @@
 ---
-import { sanityClient, urlFor } from "../lib/sanity";
+// ─── PÁGINA / (home) ─────────────────────────────────────────────────────────
+// index.astro es especial: el archivo "index" de una carpeta de pages se sirve
+// en la raíz de esa carpeta. Como está en src/pages/, su URL es "/".
+//
+// Esta página enseña un patrón clave de Astro: declarar el contenido como DATOS
+// en el frontmatter y generar el HTML repetido con .map() en la plantilla. Así
+// no copiamos y pegamos la misma estructura cinco veces.
 
-// Expected Sanity document type: "landingPage" (singleton)
-const page = await sanityClient
-  .fetch<{
-    title: string;
-    subtitle: string;
-    ctaLabel: string;
-    ctaUrl: string;
-    heroImage?: { asset: { _ref: string } };
-  }>(`*[_type == "landingPage"][0]`)
-  .catch(() => null);
+import Layout from '../layouts/Layout.astro';
+import FotoSlider from '../components/FotoSlider.astro';
+
+// `interface` describe la forma de cada variedad de mezcal. No genera código:
+// solo sirve para que TypeScript verifique que los objetos de abajo están bien
+// formados (que no falte `nombre`, que `botellas` tenga exactamente dos, etc.).
+interface Variedad {
+  nombre: string;
+  ilustracion: string;
+  botellas: [string, string]; // tupla: exactamente dos rutas de imagen
+}
+
+// Los datos de las 6 tarjetas. El ORDEN de este array es el orden en pantalla.
+// Las rutas /images/... apuntan a archivos de public/images/.
+const variedades: Variedad[] = [
+  {
+    nombre: 'Tobalá',
+    ilustracion: '/images/variedades/tobala-ilustracion.png',
+    botellas: ['/images/variedades/tobala-botella-1.png', '/images/variedades/tobala-botella-2.png'],
+  },
+  {
+    nombre: 'Tepeztate',
+    ilustracion: '/images/variedades/tepeztate-ilustracion.png',
+    botellas: ['/images/variedades/tepeztate-botella-1.png', '/images/variedades/tepeztate-botella-2.png'],
+  },
+  {
+    nombre: 'Espadín',
+    ilustracion: '/images/variedades/espadin-ilustracion.png',
+    botellas: ['/images/variedades/espadin-botella-1.png', '/images/variedades/espadin-botella-2.png'],
+  },
+  {
+    nombre: 'Cuishe',
+    ilustracion: '/images/variedades/cuishe-ilustracion.jpg',
+    botellas: ['/images/variedades/cuishe-botella-1.png', '/images/variedades/cuishe-botella-2.png'],
+  },
+  {
+    nombre: 'Cenizo',
+    ilustracion: '/images/variedades/cenizo-ilustracion.png',
+    botellas: ['/images/variedades/cenizo-botella-1.png', '/images/variedades/cenizo-botella-2.png'],
+  },
+];
+
+// Fotos para el slider. Se las pasamos al componente <FotoSlider> como prop.
+// el componente repite el set las veces necesarias para el bucle continuo
+const fotos = [
+  { src: '/images/fotos/carrusel-1.jpg', alt: 'Maestro mezcalero con su caballo entre agaves' },
+  { src: '/images/fotos/carrusel-2.jpg', alt: 'Maestro mezcalero sobre las piñas de agave cosechadas' },
+];
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width" />
-    <meta name="generator" content={Astro.generator} />
-    <title>{page?.title ?? "Landing Page"}</title>
-  </head>
-  <body>
-    <main>
+<Layout title="Limbo Mezcal — mezcal artesanal y ancestral">
+  <!-- Claim: banda verde con la frase de marca. bg-sage usa el token de color
+       definido en global.css. py-16 = padding vertical; text-justify justifica. -->
+  <section id="lema" class="bg-sage">
+    <p
+      class="mx-auto max-w-3xl px-6 py-16 text-justify text-2xl/relaxed sm:text-3xl/relaxed"
+    >
+      SOMOS EVOCACIÓN MEZCALERA: tejemos el trabajo milenario de familias mexicanas que, con
+      respeto y amor por la tierra, convierten tiempo en memoria líquida.
+    </p>
+  </section>
+
+  <!-- Variedades -->
+  <section id="variedades" class="mx-auto max-w-4xl py-16 sm:px-6">
+    <h1 class="sr-only">Nuestros mezcales</h1>
+    <!--
+      Mosaico de ancho intrínseco (w-fit): las columnas miden lo que su tarjeta
+      y el hueco central es fijo (gap-x), así la separación no cambia con el
+      ancho de pantalla. Espadín abarca las dos columnas y cae centrado en el
+      hueco; el solape vertical lo da el margen negativo.
+
+      En MÓVIL (sin prefijo): 2 columnas con gap pequeño.
+      En ESCRITORIO (md:): w-fit + gap-x grande + sin gap vertical → el mosaico.
+    -->
+    <div class="grid grid-cols-2 gap-x-2 gap-y-6 md:mx-auto md:w-fit md:gap-x-60 md:gap-y-0">
       {
-        page ? (
-          <>
-            {page.heroImage && (
-              <img
-                src={urlFor(page.heroImage).width(1200).url()}
-                alt="Hero"
-              />
-            )}
-            <h1>{page.title}</h1>
-            <p>{page.subtitle}</p>
-            <a href={page.ctaUrl}>{page.ctaLabel}</a>
-          </>
-        ) : (
-          <p>Add a "landingPage" document in Sanity Studio to get started.</p>
-        )
+        // Recorremos las variedades. El segundo parámetro `i` es el índice
+        // (0,1,2,3,4): lo usamos para dar clases distintas a algunas tarjetas.
+        variedades.map((v, i) => (
+          <article
+            class:list={[
+              'flex flex-col items-center',
+              // i === 2 es Espadín: ocupa las dos columnas y se centra.
+              i === 2 && 'col-span-2 mx-auto',
+              // De la fila central en adelante, margen superior negativo para
+              // que las filas se solapen verticalmente (solo en escritorio).
+              i >= 2 && 'md:-mt-40',
+              // En móvil, cada tarjeta de una pareja se arrima al centro:
+              // las de la izquierda (0,3) alinean a la derecha y viceversa.
+              (i === 0 || i === 3) && 'max-md:items-end',
+              (i === 1 || i === 4) && 'max-md:items-start',
+            ]}
+          >
+            <a href="/mezcales" class="group block">
+              {/*
+                Nota: dentro de este .map() estamos en JSX. Los comentarios van
+                con llave-asterisco (como este), NO con comentarios HTML, que
+                aquí se colarían al HTML como comentarios sueltos.
+
+                Ilustración arriba y botellas debajo solapando su borde inferior.
+                Caja de alto fijo con la imagen anclada abajo (items-end): así
+                todas las ilustraciones de una fila quedan enrasadas por su borde
+                inferior aunque tengan proporciones distintas.
+                Tamaños en vw (ancho de viewport) en móvil → escalan con la
+                pantalla y aprovechan todo el ancho; a partir de sm: pasan a rem.
+              */}
+              <div class="mx-auto flex h-[40vw] w-[46vw] items-end justify-center sm:h-48 sm:w-52">
+                <img
+                  src={v.ilustracion}
+                  alt={`Ilustración de la etiqueta del mezcal ${v.nombre}`}
+                  {/* group-hover: al pasar el ratón por el enlace (que tiene la
+                      clase `group`), la ilustración se agranda un poco. */}
+                  class="max-h-full w-auto max-w-full transition-transform duration-300 group-hover:scale-[1.03]"
+                  {/* loading="lazy" en las imágenes de más abajo (i>1): el
+                      navegador las descarga solo cuando se acercan a la vista,
+                      acelerando la carga inicial. Las dos primeras se cargan ya. */}
+                  loading={i > 1 ? 'lazy' : undefined}
+                />
+              </div>
+              <!-- -mt-[11vw] (margen negativo) sube las botellas para que se
+                   monten sobre el borde inferior de la ilustración. -->
+              <div class="relative -mt-[11vw] flex items-end justify-center gap-2 sm:-mt-16">
+                <img
+                  src={v.botellas[0]}
+                  alt={`Botella de Limbo Mezcal ${v.nombre}, 1 litro`}
+                  class="h-[42vw] w-auto sm:h-52"
+                  loading={i > 1 ? 'lazy' : undefined}
+                />
+                <img
+                  src={v.botellas[1]}
+                  alt={`Botella de Limbo Mezcal ${v.nombre}`}
+                  class="h-[38vw] w-auto sm:h-48"
+                  loading={i > 1 ? 'lazy' : undefined}
+                />
+              </div>
+              <h2 class="mt-5 text-center font-display text-sm font-semibold uppercase tracking-wide-caps group-hover:text-terracotta">
+                {v.nombre}
+              </h2>
+            </a>
+          </article>
+        ))
       }
-    </main>
-  </body>
-</html>
+    </div>
+  </section>
+
+  <!-- Slider de fotos. Le pasamos el array `fotos` como prop; toda la lógica del
+       carrusel vive dentro del componente (ver FotoSlider.astro). -->
+  <FotoSlider fotos={fotos} />
+</Layout>

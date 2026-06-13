@@ -1,0 +1,214 @@
+---
+// ─── PÁGINA /proceso ─────────────────────────────────────────────────────────
+// A diferencia de index y mezcales (que generan el contenido con .map() a partir
+// de datos), esta página es casi todo HTML escrito a mano: cada paso del proceso
+// es un <article> distinto, con su propia maquetación en zigzag (texto-imagen
+// alternados). Es más verboso, pero cuando cada bloque es visualmente único, a
+// veces es más claro escribirlos uno a uno que forzar un bucle.
+//
+// Lo único dinámico es la constante `proceso`, la carpeta base de las imágenes,
+// para no repetir la ruta larga en cada <img>. Se usa abajo como `${proceso}/...`.
+
+import Layout from '../layouts/Layout.astro';
+
+/*
+  Ilustraciones extraídas del PDF (public/images/proceso), asignadas por
+  contexto contra el diseño de la página 4:
+  094 manos plantando · 096 jimador cosechando · 092 piñas en el horno ·
+  082 tahona con caballo · 090 canoa a mazazos · 088 tinas de fermentación ·
+  086 alambique de cobre · 084 ollas de barro ·
+  078 murciélago · 076 quiote en flor · 080 polilla halcón.
+*/
+const proceso = '/images/proceso';
+---
+
+<Layout title="Proceso — Limbo Mezcal" noFeed>
+  <section id="nacimiento" class="mx-auto max-w-4xl px-6 py-14 sm:py-16">
+    <h1
+      class="text-center font-display text-2xl font-semibold uppercase tracking-wide-caps text-terracotta sm:text-3xl"
+    >
+      El nacimiento del mezcal
+    </h1>
+
+    <!-- Pasos 1 y 2: siembra y cosecha -->
+    <div class="mt-14 grid gap-14 sm:grid-cols-2 sm:gap-12">
+      <article class="flex flex-col items-center gap-5 text-center">
+        <div class="flex items-center gap-4">
+          <span class="font-display text-3xl font-semibold text-terracotta" aria-hidden="true">1</span>
+          <img
+            src={`${proceso}/proceso-094.png`}
+            alt="Manos plantando un pequeño hijuelo de maguey en la tierra"
+            class="w-28 sm:w-32"
+          />
+        </div>
+        <p class="max-w-xs text-sm/relaxed sm:text-base/relaxed">
+          Todo comienza en la tierra, con la siembra del maguey. La cosecha no tiene prisa: puede
+          tardar cuatro años, o veinticinco. Depende del maguey, de su linaje, de su secreto.
+        </p>
+      </article>
+
+      <article class="flex flex-col items-center gap-5 text-center">
+        <div class="flex items-center gap-4">
+          <img
+            src={`${proceso}/proceso-096.png`}
+            alt="Jimador cortando las pencas de un agave con su coa"
+            class="w-48 sm:w-56"
+          />
+          <span class="font-display text-3xl font-semibold text-terracotta" aria-hidden="true">2</span>
+        </div>
+        <p class="max-w-xs text-sm/relaxed sm:text-base/relaxed">
+          Una vez cosechado, despojado de sus pencas, el corazón —la piña— viaja al palenque.
+        </p>
+      </article>
+    </div>
+
+    <!-- Paso 3: horno cónico -->
+    <article class="mt-16 grid items-center gap-8 sm:grid-cols-[3fr_2fr] sm:gap-10">
+      <img
+        src={`${proceso}/proceso-092.png`}
+        alt="Piñas de agave apiladas sobre el horno cónico de tierra"
+        class="mx-auto w-full max-w-md"
+        loading="lazy"
+      />
+      <div class="flex items-start justify-center gap-4 text-center sm:justify-start sm:text-left">
+        <span class="font-display text-3xl font-semibold text-terracotta" aria-hidden="true">3</span>
+        <p class="max-w-xs text-sm/relaxed sm:text-base/relaxed">
+          Allí lo recibe el horno cónico, y el fuego lo transforma.
+        </p>
+      </div>
+    </article>
+
+    <p class="mt-16 text-center text-lg font-semibold sm:text-xl">Luego viene la molienda:</p>
+
+    <!-- Pasos 4 y 5: tahona y canoa -->
+    <div class="mt-10 grid gap-14 sm:grid-cols-2 sm:gap-12">
+      <article class="flex flex-col items-center gap-5 text-center">
+        <div class="flex items-center gap-2">
+          <div class="flex h-44 w-64 items-center justify-center">
+            <img
+              src={`${proceso}/proceso-082.png`}
+              alt="Caballo haciendo girar la piedra de una tahona sobre el agave cocido"
+              class="h-44 w-auto"
+              loading="lazy"
+            />
+          </div>
+          <span class="font-display text-3xl font-semibold text-terracotta" aria-hidden="true">4</span>
+        </div>
+        <p class="max-w-xs text-sm/relaxed sm:text-base/relaxed">
+          una tahona egipcia que gira en círculos lentos,
+        </p>
+      </article>
+
+      <article class="flex flex-col items-center gap-5 text-center">
+        <div class="flex items-center gap-4">
+          <span class="font-display text-3xl font-semibold text-terracotta" aria-hidden="true">5</span>
+          <img
+            src={`${proceso}/proceso-090.png`}
+            alt="Hombre machacando el agave cocido a mazazos en una canoa de madera"
+            class="w-52 sm:w-60"
+            loading="lazy"
+          />
+        </div>
+        <p class="max-w-xs text-sm/relaxed sm:text-base/relaxed">
+          o una canoa de madera golpeada a mazazos, como un tambor antiguo.
+        </p>
+      </article>
+    </div>
+
+    <!-- Paso 6: fermentación -->
+    <article class="mt-16 grid items-center gap-8 sm:grid-cols-[2fr_3fr] sm:gap-10">
+      <div class="flex items-center justify-center gap-4">
+        <img
+          src={`${proceso}/proceso-088.png`}
+          alt="Dos tinas de madera para la fermentación del mosto"
+          class="w-40 sm:w-48"
+          loading="lazy"
+        />
+        <span class="font-display text-3xl font-semibold text-terracotta" aria-hidden="true">6</span>
+      </div>
+      <p class="mx-auto max-w-sm text-center text-sm/relaxed sm:mx-0 sm:text-left sm:text-base/relaxed">
+        Después, la fermentación espontánea. Sin prisa, sin levaduras forzadas: las tinas naturales
+        respiran con el aire del campo.
+      </p>
+    </article>
+
+    <p class="mt-16 text-center text-lg font-semibold sm:text-xl">Y por último, la destilación:</p>
+
+    <!-- Pasos 7 y 8: alambique y ollas de barro -->
+    <div class="mt-10 grid gap-14 sm:grid-cols-2 sm:gap-12">
+      <article class="flex flex-col items-center gap-5 text-center">
+        <div class="flex items-center gap-4">
+          <span class="font-display text-3xl font-semibold text-terracotta" aria-hidden="true">7</span>
+          <img
+            src={`${proceso}/proceso-086.png`}
+            alt="Alambique de cobre sobre un horno de ladrillo con fuego de leña"
+            class="w-56 sm:w-64"
+            loading="lazy"
+          />
+        </div>
+        <p class="max-w-xs text-sm/relaxed sm:text-base/relaxed">
+          el vapor sube por alambiques de cobre
+        </p>
+      </article>
+
+      <article class="flex flex-col items-center gap-5 text-center">
+        <div class="flex items-center gap-4">
+          <img
+            src={`${proceso}/proceso-084.png`}
+            alt="Dos ollas de barro destilando mezcal sobre un horno de ladrillo"
+            class="w-56 sm:w-64"
+            loading="lazy"
+          />
+          <span class="font-display text-3xl font-semibold text-terracotta" aria-hidden="true">8</span>
+        </div>
+        <p class="max-w-xs text-sm/relaxed sm:text-base/relaxed">
+          o se escurre suave desde ollas de barro, y el mezcal nace, por fin, líquido y memoria.
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <!-- Los polinizadores del agave -->
+  <section id="polinizadores" class="bg-sage">
+    <div class="mx-auto max-w-4xl px-6 py-14 sm:py-16">
+      <h2
+        class="text-center font-display text-xl font-semibold uppercase tracking-wide-caps text-terracotta sm:text-2xl"
+      >
+        Los polinizadores del agave
+      </h2>
+
+      <div class="mt-12 flex items-end justify-center gap-8 sm:gap-16">
+        <img
+          src={`${proceso}/proceso-078.png`}
+          alt="Murciélago con las alas extendidas"
+          class="w-24 sm:w-32"
+          loading="lazy"
+        />
+        <img
+          src={`${proceso}/proceso-076.png`}
+          alt="Quiote de agave en flor"
+          class="h-44 w-auto sm:h-60"
+          loading="lazy"
+        />
+        <img
+          src={`${proceso}/proceso-080.png`}
+          alt="Polilla halcón con las alas abiertas"
+          class="w-20 sm:w-28"
+          loading="lazy"
+        />
+      </div>
+
+      <div class="mt-12 grid gap-8 sm:grid-cols-2 sm:gap-14">
+        <p class="text-sm/relaxed sm:text-base/relaxed">
+          Los primeros en llegar, los más fieles, son los murciélagos. Voladores primarios,
+          abundantes y eficaces, cargan el polen en su vuelo oscuro.
+        </p>
+        <p class="text-sm/relaxed sm:text-base/relaxed">
+          Pero no están solos. Los esfíngidos —polillas halcón, cuerpos robustos, alas estrechas
+          como dagas— también visitan las flores del agave. Grandes, veloces, de vuelo poderoso,
+          son otros enamorados del maguey.
+        </p>
+      </div>
+    </div>
+  </section>
+</Layout>

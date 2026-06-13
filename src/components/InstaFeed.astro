@@ -1,0 +1,124 @@
+---
+/*
+  ─── COMPONENTE InstaFeed (rejilla del feed de Instagram) ──────────────────────
+
+  Este componente es un buen ejemplo de "código que corre en BUILD". Todo lo que
+  hay aquí en el frontmatter (incluido el fetch a Instagram) se ejecuta UNA vez,
+  cuando generamos el sitio. El visitante recibe el HTML ya con las 6 fotos
+  dentro; su navegador no llama a Instagram.
+
+  Estrategia: en build intentamos cargar las últimas publicaciones con la API de
+  Instagram (si existe la variable de entorno INSTAGRAM_ACCESS_TOKEN). Si no hay
+  token o la petición falla, usamos las fotos locales del diseño como reserva.
+  Así la web nunca se rompe aunque Instagram falle.
+
+  Ojo: las URLs de imagen del CDN de Instagram caducan a las pocas semanas. Como
+  la web es estática, conviene programar un redespliegue periódico (deploy hook
+  de Vercel + cron) para que el feed se refresque.
+*/
+interface Props {
+  dark?: boolean;
+}
+const { dark = false } = Astro.props;
+
+const PERFIL = 'https://www.instagram.com/limbo.mezcal/';
+
+// Forma de cada publicación que pintaremos: imagen, enlace y texto alternativo.
+interface Publicacion {
+  src: string;
+  href: string;
+  alt: string;
+}
+
+// PLAN B (reserva): 6 fotos locales de public/images/feed/. Array.from con
+// `{ length: 6 }` crea un array de 6 huecos y la función (_, i) los rellena;
+// `i` va de 0 a 5, así que feed-${i+1} genera feed-1..feed-6.
+const reserva: Publicacion[] = Array.from({ length: 6 }, (_, i) => ({
+  src: `/images/feed/feed-${i + 1}.png`,
+  href: PERFIL,
+  alt: `Publicación ${i + 1} de Instagram de Limbo Mezcal`,
+}));
+
+// Por defecto usamos la reserva; si el fetch va bien, la sustituimos.
+let publicaciones = reserva;
+
+const token = import.meta.env.INSTAGRAM_ACCESS_TOKEN;
+if (token) {
+  // try/catch: si algo falla (sin red, token caducado, respuesta rara), saltamos
+  // al catch y nos quedamos con la reserva en vez de romper el build.
+  try {
+    // `await` aquí, en el frontmatter, es válido: Astro permite "top-level await"
+    // porque esto corre en Node durante el build, no en el navegador.
+    const res = await fetch(
+      'https://graph.instagram.com/me/media' +
+        '?fields=id,caption,media_type,media_url,thumbnail_url,permalink' +
+        `&limit=12&access_token=${token}`
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    // La respuesta es JSON. El `as { … }` le dice a TypeScript qué forma tiene
+    // (la API no trae tipos, así que se los declaramos nosotros).
+    const { data } = (await res.json()) as {
+      data: {
+        caption?: string;
+        media_type: 'IMAGE' | 'VIDEO' | 'CAROUSEL_ALBUM';
+        media_url: string;
+        thumbnail_url?: string;
+        permalink: string;
+      }[];
+    };
+
+    // Transformamos la respuesta de Instagram a nuestra forma `Publicacion`:
+    const ultimas = data
+      .map((m) => ({
+        // Los vídeos no tienen imagen fija; usamos su miniatura (thumbnail).
+        src: m.media_type === 'VIDEO' ? m.thumbnail_url : m.media_url,
+        href: m.permalink, // enlace a la publicación concreta
+        alt: m.caption?.slice(0, 120) ?? 'Publicación de Instagram de Limbo Mezcal',
+      }))
+      // Descartamos las que se hayan quedado sin imagen. El `p is Publicacion`
+      // es un "type guard": confirma a TypeScript que tras el filtro `src` ya no
+      // puede ser undefined.
+      .filter((p): p is Publicacion => Boolean(p.src))
+      .slice(0, 6); // nos quedamos con las 6 primeras (rejilla 3×2)
+
+    // Solo sustituimos la reserva si de verdad obtuvimos publicaciones.
+    if (ultimas.length) publicaciones = ultimas;
+  } catch (e) {
+    // El warning aparece en la consola del BUILD (tu terminal / logs de Vercel),
+    // nunca en el navegador del visitante.
+    console.warn('InstaFeed: no se pudo cargar el feed de Instagram, uso las fotos locales.', e);
+  }
+}
+---
+
+<section id="instagram" class:list={['py-12', dark ? 'bg-ink' : 'bg-cream']}>
+  <!-- target="_blank" abre en pestaña nueva; rel="noopener" es una buena
+       práctica de seguridad al usar _blank. -->
+  <a
+    href={PERFIL}
+    target="_blank"
+    rel="noopener"
+    class:list={[
+      'mb-6 block text-center font-display text-[13px] font-semibold uppercase tracking-wide-caps transition-colors hover:text-terracotta',
+      dark ? 'text-cream' : 'text-ink',
+    ]}
+  >
+    @limbo.mezcal
+  </a>
+
+  <!-- grid-cols-3 → 3 columnas; con 6 fotos salen 2 filas de 3. w-fit hace que
+       la rejilla mida lo justo y mx-auto la centra. -->
+  <div class="mx-auto grid w-fit grid-cols-3 gap-2 px-5">
+    {
+      publicaciones.map((p) => (
+        <a href={p.href} target="_blank" rel="noopener" class="block transition-opacity hover:opacity-80">
+          {/* aspect-3/4 fuerza proporción 3:4; object-cover recorta para llenar
+              sin deformar. (Comentario JSX con llave-asterisco porque estamos
+              dentro de un .map().) */}
+          <img src={p.src} alt={p.alt} class="aspect-3/4 w-28 object-cover sm:w-32" loading="lazy" />
+        </a>
+      ))
+    }
+  </div>
+</section>

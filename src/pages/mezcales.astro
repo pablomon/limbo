@@ -1,0 +1,195 @@
+---
+// ─── PÁGINA /mezcales ────────────────────────────────────────────────────────
+// Página rica en datos: maestros, variedades de agave y sus especificaciones.
+// Igual que la home, declaramos todo como datos en el frontmatter y lo pintamos
+// con .map() en la plantilla. Pasamos `noFeed` al Layout porque aquí el diseño
+// no lleva el feed de Instagram antes del pie.
+
+import Layout from '../layouts/Layout.astro';
+
+// Los tres maestros mezcaleros (retrato + nombre).
+interface Maestro {
+  nombre: string;
+  img: string;
+}
+
+const maestros: Maestro[] = [
+  { nombre: 'Luis Núñez', img: '/images/maestros/maestro-1.png' },
+  { nombre: 'Rey Cruz', img: '/images/maestros/maestro-2.png' },
+  { nombre: 'Óscar Estrada', img: '/images/maestros/maestro-3.png' },
+];
+
+/*
+  Dibujos de agave extraídos del PDF, usados en Especificaciones:
+  060 Tobalá · 062 Cenizo · 064 Tepeztate · 066 Espadín · 068 Cuishe.
+*/
+interface Agave {
+  etiqueta: string;
+  pequeno: string;
+  alt: string;
+}
+
+// Aquí guardamos los agaves en un objeto con clave (cenizo, cuishe…) en vez de
+// en un array. Así abajo podemos referirnos a uno concreto por su nombre
+// (agaves.espadin) al construir la lista de especificaciones, en vez de por su
+// posición numérica. `Record<string, Agave>` = objeto de claves texto → Agave.
+const agaves: Record<string, Agave> = {
+  cenizo: {
+    etiqueta: 'Cenizo. Duranguensis',
+    pequeno: '/images/agaves/agave-062.png',
+    alt: 'Dibujo a tinta de un agave Cenizo, de hojas anchas y dentadas',
+  },
+  cuishe: {
+    etiqueta: 'Cuishe/Madre Cuishe. Karwinski',
+    pequeno: '/images/agaves/agave-068.png',
+    alt: 'Dibujo a tinta de un agave Cuishe, con roseta de hojas finas sobre un tronco',
+  },
+  espadin: {
+    etiqueta: 'Espadín. Angustifolia',
+    pequeno: '/images/agaves/agave-066.png',
+    alt: 'Dibujo a tinta de un agave Espadín, de hojas largas, rectas y estrechas',
+  },
+  tobala: {
+    etiqueta: 'Tobalá. Potatorum',
+    pequeno: '/images/agaves/agave-060.png',
+    alt: 'Dibujo a tinta de un agave Tobalá, de roseta compacta y hojas anchas',
+  },
+  tepeztate: {
+    etiqueta: 'Tepeztate. Marmorata',
+    pequeno: '/images/agaves/agave-064.png',
+    alt: 'Dibujo a tinta de un agave Tepeztate, de hojas largas y retorcidas',
+  },
+};
+
+// Cada especificación reúne un agave (reutilizando los de arriba) y su texto.
+// Fíjate en `agave: agaves.espadin`: enlazamos al objeto ya definido, sin repetir
+// su ruta ni su alt. Si cambia la imagen del espadín, se toca en un solo sitio.
+const especificaciones = [
+  {
+    nombre: 'Espadín',
+    agave: agaves.espadin,
+    texto:
+      'El Espadín ancestral, apreciado por su rápida maduración de entre 6 y 8 años, es el principal cultivo utilizado en la producción de mezcal en el estado de Oaxaca. Se destila de forma pura y artesanal, sin maquinaria moderna. Alcanza una altura de 1.8 a 2.5 metros y crece en distintos tipos de suelo y elevaciones, lo que le permite ofrecer una amplia gama de sabores: desde afrutados y especiados hasta herbáceos y terrosos.',
+  },
+  {
+    nombre: 'Tobalá',
+    agave: agaves.tobala,
+    texto:
+      'El Tobalá, conocido como el rey de los magueyes, es considerado por algunos como el primer agave destilado por los productores indígenas oaxaqueños. Crece en suelos rocosos de gran altitud, suele desarrollarse a la sombra de los encinos —como las trufas— y tarda entre 8 y 15 años en madurar. Es originario de Villa Sola de Vega. Produce un mezcal complejo, con una marcada mineralidad y notas de tabaco, cacao, vainilla y cuero, que ofrece un equilibrio único entre aromas a madera y sabor ahumado.',
+  },
+  {
+    nombre: 'Cuishe',
+    agave: agaves.cuishe,
+    texto:
+      'El Cuishe pertenece a la subvariedad Karwinskii, única por su porte erguido. Su nombre proviene de una deformación de una palabra zapoteca que significa «despeinado». Puede empezarse a producir mezcal a partir de los 6 años. El Cuishe ofrece un sabor muy verde, herbáceo, con aromas terrosos y vegetales.',
+  },
+  {
+    nombre: 'Tepeztate',
+    agave: agaves.tepeztate,
+    texto:
+      'El Tepeztate florece en grandes altitudes, colgado del borde de acantilados o enclavado en bosques de pinos y robles. Es uno de los agaves más longevos, con una maduración de entre 18 y 30 años, y aún tenemos el honor de poder beberlo. Sus hojas no crecen rectas como las de otros agaves, sino que se desarrollan de forma retorcida. Su mezcal suele ser confitado, ajardinado, herbal y etéreo.',
+  },
+  {
+    nombre: 'Cenizo',
+    agave: agaves.cenizo,
+    texto:
+      'Este agave se encuentra casi exclusivamente en el sur del estado de Durango, así como en partes del vecino Zacatecas. Sus singulares mezcales son cada vez más populares como alternativa a los mezcales oaxaqueños, elaborados a más de 800 millas al sur. Se llama «cenizo» porque sus hojas verdes tienen las puntas de color gris ceniza, como si se hubieran quemado. Sus mezcales son afrutados, con una textura casi cremosa. El Cenizo puede absorber aromas del huizache (acacia dulce) y del mezquite, árboles muy abundantes en la región donde se cultiva. Su sabor es dulce, con toques de caramelo quemado y frutos secos. Crece en zonas con grandes contrastes de temperatura entre el día y la noche, así como variaciones estacionales. Las temperaturas en estas regiones pueden oscilar anualmente entre los -3.9 °C y los 40.6 °C. El Cenizo prospera con estos cambios, desarrollando azúcares muy complejos. Durante la fermentación, las cubas se entierran en la tierra para aislarlas de las temperaturas extremas.',
+  },
+];
+---
+
+<Layout title="Nuestros mezcales — Limbo Mezcal" noFeed>
+  <!-- Titular -->
+  <section id="intro" class="mx-auto max-w-4xl px-6 pt-12 text-center sm:pt-16">
+    <h1
+      class="font-display text-2xl font-semibold uppercase tracking-wide-caps text-terracotta sm:text-3xl"
+    >
+      Mezcales artesanales y ancestrales
+    </h1>
+    <p class="mt-4 text-lg font-semibold sm:text-xl">
+      Producidos en San Dionisio Ocotlán, Oaxaca y en Yonora el Mezquital, Durango.
+    </p>
+  </section>
+
+  <!-- Maestros mezcaleros -->
+  <section id="maestros" class="mx-auto max-w-4xl px-6 py-14 text-center sm:py-16">
+    <h2 class="font-display text-sm font-semibold uppercase tracking-wide-caps sm:text-base">
+      Maestros mezcaleros:
+    </h2>
+    <!-- flex-wrap: si no caben en una fila, saltan a la siguiente (útil en móvil). -->
+    <ul class="mt-10 flex flex-wrap items-start justify-center gap-10 sm:gap-16">
+      {
+        // Un <li> por maestro. El texto alterno (alt) se construye con el nombre.
+        maestros.map((m) => (
+          <li class="flex flex-col items-center gap-4">
+            <img
+              src={m.img}
+              alt={`Retrato dibujado del maestro mezcalero ${m.nombre}`}
+              class="h-32 w-auto sm:h-40"
+            />
+            <p class="font-display text-xs font-semibold uppercase tracking-wide-caps sm:text-sm">
+              {m.nombre}
+            </p>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <!-- Variedades de agave + mapa -->
+  <section id="agaves">
+    <!-- bloque centrado; la segunda línea se justifica al ancho de la primera.
+         Truco: w-fit hace que el bloque mida lo que su línea más larga (el h2).
+         Para que "Denominación de origen protegida" ocupe EXACTAMENTE ese ancho,
+         partimos la frase en <span> y usamos flex + justify-between, que reparte
+         el espacio sobrante entre las palabras. -->
+    <div class="mx-auto w-fit px-6 pb-10 sm:pb-12">
+      <h2
+        class="font-display text-lg font-semibold uppercase tracking-wide-caps text-terracotta sm:text-xl"
+      >
+        Ofrecemos 5 variedades de agave
+      </h2>
+      <p class="mt-1 flex justify-between text-lg font-bold sm:text-xl">
+        <span>Denominación</span><span>de</span><span>origen</span><span>protegida</span>
+      </p>
+    </div>
+
+    <!--
+      Composición exportada del diseño: mapa + agaves etiquetados.
+      Cuando exista la versión móvil (mexico-mob), convertir en <picture>
+      con media="(max-width: 767px)".
+    -->
+    <!-- en móvil el mapa va a sangre, sin padding ni margen -->
+    <div class="bg-sage">
+      <img
+        src="/images/mexico-dkt.png"
+        alt="Mapa de México con los estados productores de Durango y Oaxaca y las cinco variedades de agave: Cenizo, Cuishe, Espadín, Tobalá y Tepeztate"
+        class="mx-auto w-full max-w-4xl sm:px-6 sm:py-12"
+        loading="lazy"
+      />
+    </div>
+  </section>
+
+  <!-- Especificaciones -->
+  <section id="especificaciones" class="mx-auto max-w-4xl px-6 py-14 sm:py-16">
+    <h2
+      class="font-display text-xl font-semibold uppercase tracking-wide-caps text-terracotta sm:text-2xl"
+    >
+      Especificaciones
+    </h2>
+    <!-- space-y-12 pone separación vertical entre los hijos (entre artículos). -->
+    <div class="mt-10 space-y-12">
+      {
+        especificaciones.map((e) => (
+          // grid-cols-[7rem_1fr]: dos columnas, la del dibujo fija a 7rem y la del
+          // texto ocupando el resto (1fr). En móvil (sin prefijo) se apila en una.
+          <article class="grid items-start gap-5 sm:grid-cols-[7rem_1fr] sm:gap-10">
+            <h3 class="sr-only">{e.nombre}</h3>
+            <img src={e.agave.pequeno} alt={e.agave.alt} class="mx-auto w-24 sm:mt-1 sm:w-full" loading="lazy" />
+            <p class="text-justify text-sm/relaxed sm:text-base/relaxed">{e.texto}</p>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+</Layout>

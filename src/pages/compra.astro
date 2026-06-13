@@ -1,0 +1,41 @@
+---
+// ─── PÁGINA /compra ──────────────────────────────────────────────────────────
+// Esta es la página más sencilla del sitio: ideal para ver el patrón básico.
+//
+// Por estar en src/pages/, este archivo ES una ruta: existe en la URL /compra.
+// No hay que registrarla en ningún sitio (enrutado por archivos).
+//
+// Esto de aquí, entre las `---`, es el FRONTMATTER: JavaScript que corre en build.
+// Lo único que hacemos es importar el Layout (el marco común con cabecera y pie).
+import Layout from '../layouts/Layout.astro';
+---
+
+<!-- Debajo de las `---` va la PLANTILLA (HTML). Envolvemos el contenido en el
+     <Layout>: todo lo que pongamos entre <Layout> y </Layout> se inyecta en el
+     <slot /> del Layout. A `title` le pasamos una "prop" (ver Layout.astro). -->
+<Layout title="Compra aquí — Limbo Mezcal">
+  <!-- id="contacto" da un ancla legible: se puede enlazar como /compra#contacto -->
+  <section id="contacto" class="px-6 py-24 sm:py-36">
+    <!-- sr-only = "screen-reader only": el h1 existe para lectores de pantalla y
+         buscadores (toda página debe tener un h1), pero es invisible porque el
+         diseño no muestra un titular aquí. -->
+    <h1 class="sr-only">Compra aquí</h1>
+
+    <!-- Enlace a WhatsApp. wa.me es el formato oficial de enlaces de WhatsApp:
+         wa.me/<número con prefijo internacional, sin + ni espacios>. -->
+    <a
+      href="https://wa.me/527773050719"
+      class="mx-auto flex w-fit items-center gap-4 transition-colors hover:text-terracotta"
+    >
+      <!-- src empieza por /images/... → ese archivo está en public/images/.
+           Lo de public/ se sirve tal cual: public/images/whatsapp.png se ve
+           en la URL /images/whatsapp.png (sin el "public"). -->
+      <img
+        src="/images/whatsapp.png"
+        alt="WhatsApp"
+        class="h-10 w-10 sm:h-12 sm:w-12"
+      />
+      <span class="text-2xl tracking-wide sm:text-3xl">+52 777 305 0719</span>
+    </a>
+  </section>
+</Layout>

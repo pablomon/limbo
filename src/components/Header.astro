@@ -1,0 +1,126 @@
+---
+// ─── COMPONENTE Header (cabecera: navegación + logo + menú móvil) ─────────────
+// Muestra el logo centrado con enlaces a los lados en escritorio, y una
+// hamburguesa que despliega el menú en móvil. Incluye un <script> de cliente
+// (al final) para abrir/cerrar ese menú.
+
+interface Props {
+  dark?: boolean;
+}
+const { dark = false } = Astro.props;
+
+// Página actual, para resaltar su enlace (igual que en el Footer).
+const path = Astro.url.pathname.replace(/\/$/, '') || '/';
+
+// Los enlaces se reparten en dos grupos porque el logo va EN MEDIO de ellos en
+// escritorio: 'left' a la izquierda del logo, 'right' a la derecha.
+const left = [
+  { href: '/nosotros', label: 'Nosotros' },
+  // dosLineas: bandera propia para partir esta etiqueta en dos renglones,
+  // como pide el diseño. La usamos abajo en la plantilla.
+  { href: '/mezcales', label: 'Nuestros mezcales', dosLineas: true },
+  { href: '/proceso', label: 'Proceso' },
+];
+const right = [
+  { href: '/convocatoria', label: 'Convocatoria' },
+  { href: '/compra', label: 'Compra aquí' },
+];
+// El menú móvil sí muestra todos juntos: `[...left, ...right]` fusiona los dos
+// arrays en uno (el `...` "esparce" los elementos de cada array).
+const links = [...left, ...right];
+
+const linkClass = (href: string) =>
+  [
+    'font-display font-semibold uppercase tracking-nav text-[13px] leading-tight transition-colors hover:text-terracotta',
+    path === href ? 'text-terracotta' : dark ? 'text-cream' : 'text-ink',
+  ].join(' ');
+
+const logo = dark ? '/images/logo-white.png' : '/images/logo-black.png';
+---
+
+<!-- sticky top-0: la cabecera se queda pegada arriba al hacer scroll.
+     z-50: la mantiene por encima del contenido que pasa por debajo. -->
+<header class:list={['sticky top-0 z-50', dark ? 'bg-ink' : 'bg-cream']}>
+  <div class="mx-auto flex max-w-6xl items-center justify-between px-5 py-6 md:justify-center md:gap-6 lg:gap-10">
+    <!-- Nav izquierda. `hidden md:flex` = oculto en móvil, visible (flex) desde
+         768px. Así, en móvil solo se ve el logo + la hamburguesa. -->
+    <nav class="hidden md:flex md:flex-1 md:items-center md:justify-end md:gap-5 lg:gap-8" aria-label="Principal">
+      {
+        left.map((l) => (
+          // Si el enlace lleva `dosLineas`, le añadimos text-center y partimos
+          // su texto: .split(' ') trocea "Nuestros mezcales" en ['Nuestros',
+          // 'mezcales'] y cada palabra va en un <span class="block"> (block =
+          // cada span en su propia línea).
+          <a href={l.href} class:list={[linkClass(l.href), l.dosLineas && 'text-center']}>
+            {l.dosLineas ? l.label.split(' ').map((palabra) => <span class="block">{palabra}</span>) : l.label}
+          </a>
+        ))
+      }
+    </nav>
+
+    <!-- Logo central. shrink-0 evita que se encoja si falta espacio. -->
+    <a href="/" class="block shrink-0" aria-label="Limbo Mezcal — inicio">
+      <img src={logo} alt="Limbo Mezcal" class="h-16 w-auto lg:h-20" />
+    </a>
+
+    <!-- Nav derecha, también oculta en móvil. -->
+    <nav class="hidden md:flex md:flex-1 md:items-center md:justify-start md:gap-5 lg:gap-8" aria-label="Secundaria">
+      {right.map((l) => <a href={l.href} class={linkClass(l.href)}>{l.label}</a>)}
+    </nav>
+
+    <!-- Botón hamburguesa: al revés que las navs, `md:hidden` = visible en móvil
+         y oculto desde 768px. Las tres rayas son tres <span>.
+         aria-expanded y aria-controls comunican a los lectores de pantalla si el
+         menú está abierto y qué elemento controla. El <script> los actualiza. -->
+    <button
+      id="menu-toggle"
+      type="button"
+      class:list={['flex h-10 w-10 flex-col items-center justify-center gap-1.5 md:hidden', dark ? 'text-cream' : 'text-ink']}
+      aria-expanded="false"
+      aria-controls="mobile-menu"
+      aria-label="Abrir menú"
+    >
+      <span class="block h-0.5 w-6 bg-current transition-transform"></span>
+      <span class="block h-0.5 w-6 bg-current transition-opacity"></span>
+      <span class="block h-0.5 w-6 bg-current transition-transform"></span>
+    </button>
+  </div>
+
+  <!-- Panel del menú móvil. Empieza `hidden`; el script le quita esa clase al
+       pulsar la hamburguesa. `md:!hidden` lo fuerza a estar oculto en escritorio
+       (el `!` = !important, gana aunque el script lo intente mostrar). -->
+  <nav
+    id="mobile-menu"
+    class:list={[
+      'absolute inset-x-0 top-full hidden flex-col items-center gap-5 border-t py-8 shadow-lg md:!hidden',
+      dark ? 'border-cream/20 bg-ink' : 'border-ink/10 bg-cream',
+    ]}
+    aria-label="Menú móvil"
+  >
+    {links.map((l) => <a href={l.href} class={linkClass(l.href) + ' text-base'}>{l.label}</a>)}
+  </nav>
+</header>
+
+<!-- ── SCRIPT DE CLIENTE ───────────────────────────────────────────────────────
+     OJO: esto NO corre en build. Astro lo empaqueta y lo manda al navegador,
+     donde se ejecuta cuando el usuario carga la página. Por eso aquí SÍ existen
+     `document`, eventos, clics… (cosas del navegador que en el frontmatter no
+     existirían). Maneja abrir/cerrar el menú móvil. -->
+<script>
+  const toggle = document.getElementById('menu-toggle');
+  const menu = document.getElementById('mobile-menu');
+
+  // El `?.` ("optional chaining") evita un error si el elemento no existiera:
+  // solo añade el listener si `toggle` no es null.
+  toggle?.addEventListener('click', () => {
+    // .classList.toggle('hidden') quita la clase si está y la pone si no está,
+    // y DEVUELVE si la clase quedó puesta (true) o no (false). Si devuelve false,
+    // significa que ya no está oculto → el menú quedó ABIERTO.
+    const open = menu?.classList.toggle('hidden') === false;
+    // Sincronizamos el atributo de accesibilidad con el estado real.
+    toggle.setAttribute('aria-expanded', String(open));
+    // Añadimos/quitamos `flex` para que, cuando esté visible, se muestre en
+    // columna (la clase flex-col del nav ya está puesta).
+    menu?.classList.toggle('flex', open);
+  });
+</script>

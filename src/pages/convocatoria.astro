@@ -1,0 +1,226 @@
+---
+// ─── PÁGINA /convocatoria ────────────────────────────────────────────────────
+// Página de tema oscuro (pasamos `dark` al Layout). Muestra las obras de la
+// convocatoria organizadas en columnas por año; se puede arrastrar la tira
+// horizontalmente y al cargar centra el año actual. Cada obra se amplía al
+// clicarla (mismo patrón de <dialog> que el FotoSlider).
+
+import Layout from '../layouts/Layout.astro';
+
+// Obras por año extraídas del diseño; cuando haya CMS se alimentará desde Sanity.
+// `Record<number, string[]>` = un objeto cuyas claves son números (el año) y
+// cuyos valores son arrays de rutas de imagen.
+const obras: Record<number, string[]> = {
+  // Array.from genera las rutas: para 2025, 8 obras 2025-01..2025-08.
+  // padStart(2, '0') rellena con un cero a la izquierda: 1 → "01".
+  2025: Array.from({ length: 8 }, (_, i) => `/images/convocatoria/2025-${String(i + 1).padStart(2, '0')}.png`),
+  2024: Array.from({ length: 8 }, (_, i) => `/images/convocatoria/2024-${String(i + 1).padStart(2, '0')}.png`),
+  2023: Array.from({ length: 8 }, (_, i) => `/images/convocatoria/2023-${String(i + 1).padStart(2, '0')}.png`),
+  2022: [
+    // Este año mezcla .png y .jpg, así que combinamos el array generado con dos
+    // rutas sueltas usando el spread `...`.
+    ...Array.from({ length: 6 }, (_, i) => `/images/convocatoria/2022-${String(i + 1).padStart(2, '0')}.png`),
+    '/images/convocatoria/2022-07.jpg',
+    '/images/convocatoria/2022-08.jpg',
+  ],
+  2021: Array.from({ length: 8 }, (_, i) => `/images/convocatoria/2021-${String(i + 1).padStart(2, '0')}.png`),
+  2020: Array.from({ length: 7 }, (_, i) => `/images/convocatoria/2020-${String(i + 1).padStart(2, '0')}.png`),
+};
+
+// Lista de años ordenada de mayor a menor (2025, 2024, …). Object.keys da las
+// claves como texto; las pasamos a número con .map(Number) y ordenamos con sort.
+const years = Object.keys(obras)
+  .map(Number)
+  .sort((a, b) => b - a);
+---
+
+<Layout title="Convocatoria — Limbo Mezcal" dark>
+  <section id="bases" class="mx-auto max-w-3xl px-6 pt-10 text-center">
+    <h1 class="font-display text-base font-bold uppercase tracking-wide-caps sm:text-lg">
+      Es anual. Se lanza en redes en octubre. Pregunta por las bases.
+    </h1>
+    <p class="mt-4 text-sm/relaxed text-cream/80 sm:text-base/relaxed">
+      Tema libre, inspirados en el maguey, el mezcal, el proceso o por todos ellos a la vez. Más
+      que un premio es un trueque, aunque sí hay una remuneración si eres elegido por Tierra
+      Tikuva.
+    </p>
+  </section>
+
+  <!-- Archivo de obras por año: arrastra horizontalmente; el año en curso queda centrado -->
+  <section id="obras" class="py-12" aria-label="Obras de la convocatoria por año">
+    <!-- La tira de años.
+         · snap-x snap-mandatory: al desplazar, "encaja" en una columna concreta.
+         · px-[50vw]: medio ancho de pantalla de relleno a cada lado, para que la
+           primera y la última columna puedan llegar al CENTRO de la pantalla.
+         · data-dragging:snap-none: mientras se arrastra (clase puesta por JS),
+           desactivamos el encaje para que no pelee con el gesto. -->
+    <div
+      id="anios"
+      class="flex cursor-grab snap-x snap-mandatory gap-8 overflow-x-auto px-[50vw] select-none [scrollbar-width:none] data-dragging:cursor-grabbing data-dragging:snap-none [&::-webkit-scrollbar]:hidden"
+    >
+      {
+        // Una columna por año. data-year guarda el año en el HTML para que el
+        // script sepa, al medir, a qué año corresponde cada columna.
+        years.map((year) => (
+          <div class="w-44 shrink-0 snap-center sm:w-52" data-year={year}>
+            <button
+              type="button"
+              data-year-btn
+              class="mb-5 block w-full text-center font-display text-lg font-bold tracking-wide-caps transition-colors hover:text-terracotta"
+            >
+              {year}
+            </button>
+            <div class="flex flex-col gap-3">
+              {/* Las obras de ESE año. Cada una es un botón que abre el visor. */}
+              {obras[year].map((src, i) => (
+                <button
+                  type="button"
+                  data-obra
+                  class="block w-full cursor-zoom-in transition-opacity hover:opacity-80"
+                  aria-label={`Ampliar obra ${i + 1} de la convocatoria ${year}`}
+                >
+                  <img
+                    src={src}
+                    alt={`Obra ${i + 1} de la convocatoria ${year}`}
+                    class="pointer-events-none w-full"
+                    loading="lazy"
+                    draggable="false"
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  <!-- Visor de obra ampliada -->
+  <!-- el fondo oscuro y la animación del backdrop los define global.css -->
+  <dialog
+    id="visor"
+    class="m-auto max-h-none max-w-none bg-transparent"
+  >
+    <button
+      type="button"
+      id="visor-cerrar"
+      class="fixed top-4 right-5 p-2 font-display text-4xl/none text-cream transition-opacity hover:opacity-70"
+      aria-label="Cerrar"
+    >
+      &times;
+    </button>
+    <!-- Ancho fijo moderado: las obras extraídas del PDF son de baja resolución
+         (~220px); cuando lleguen los originales podrá ampliarse más -->
+    <img id="visor-img" src="" alt="" class="h-auto w-[min(480px,92vw)] max-h-[88vh] object-contain" />
+  </dialog>
+</Layout>
+
+<!-- ── SCRIPT DE CLIENTE ─────────────────────────────────────────────────────── -->
+<script>
+  const strip = document.getElementById('anios')!;
+  // Convertimos la NodeList de columnas en un array de verdad con [...]
+  // para poder usar métodos como find y reduce.
+  const cols = [...strip.querySelectorAll<HTMLElement>('[data-year]')];
+
+  // Calcula cuánto hay que desplazar (scrollLeft) para que una columna quede
+  // centrada: su posición + media columna − media pantalla.
+  const centerOf = (col: HTMLElement) =>
+    col.offsetLeft + col.offsetWidth / 2 - strip.clientWidth / 2;
+
+  // Centra el año dado. Si ese año no existe (p. ej. el actual aún sin obras),
+  // el `??` recurre al año más reciente (el de número mayor).
+  const centerYear = (year: number, smooth = false) => {
+    const col =
+      cols.find((c) => Number(c.dataset.year) === year) ??
+      cols.reduce((a, b) => (Number(a.dataset.year) > Number(b.dataset.year) ? a : b));
+    strip.scrollTo({ left: centerOf(col), behavior: smooth ? 'smooth' : 'instant' });
+  };
+
+  // Al cargar la página, centramos el año actual. new Date().getFullYear() lo da.
+  centerYear(new Date().getFullYear());
+
+  // Clic en el número de un año → lo centra (salvo que vengamos de arrastrar).
+  cols.forEach((col) => {
+    col.querySelector('[data-year-btn]')?.addEventListener('click', () => {
+      if (!dragged) centerYear(Number(col.dataset.year), true);
+    });
+  });
+
+  // ── Arrastre con ratón (en táctil el navegador ya desplaza solo) ─────────────
+  let startX = 0;
+  let startScroll = 0;
+  let dragged = false; // distingue clic de arrastre, como en el slider de fotos
+
+  // NO usamos setPointerCapture: capturaría el puntero y entonces los clics sobre
+  // las obras y los años se "retargetearían" al contenedor, rompiéndolos. Por eso
+  // escuchamos el movimiento en window.
+  strip.addEventListener('pointerdown', (e) => {
+    if (e.pointerType !== 'mouse') return;
+    startX = e.clientX;
+    startScroll = strip.scrollLeft; // guardamos el scroll al empezar
+    dragged = false;
+    strip.dataset.dragging = '';
+
+    // Aquí movemos respecto al ORIGEN (a diferencia del FotoSlider): esta tira no
+    // es un bucle infinito, así que es más simple y no hay que envolver.
+    const move = (ev: PointerEvent) => {
+      const dx = ev.clientX - startX;
+      if (Math.abs(dx) > 3) dragged = true;
+      strip.scrollLeft = startScroll - dx;
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      if (dragged) {
+        // Al soltar, encajamos en el año más cercano al centro de la pantalla.
+        const mid = strip.scrollLeft + strip.clientWidth / 2;
+        // reduce recorre las columnas quedándose con la más próxima al centro.
+        const nearest = cols.reduce((a, b) =>
+          Math.abs(a.offsetLeft + a.offsetWidth / 2 - mid) <
+          Math.abs(b.offsetLeft + b.offsetWidth / 2 - mid)
+            ? a
+            : b
+        );
+        strip.scrollTo({ left: centerOf(nearest), behavior: 'smooth' });
+
+        // Mantenemos data-dragging (que desactiva el snap CSS) hasta que termina
+        // el desplazamiento suave, para que el navegador no encaje por su cuenta
+        // a mitad de animación. scrollend avisa cuando el scroll se detiene.
+        let settled = false;
+        const settle = () => {
+          if (settled) return;
+          settled = true;
+          delete strip.dataset.dragging;
+        };
+        strip.addEventListener('scrollend', settle, { once: true });
+        setTimeout(settle, 700); // Safari aún no dispara scrollend → red de seguridad
+        // Liberamos `dragged` tras el click que sigue al soltar (ver FotoSlider).
+        setTimeout(() => (dragged = false), 0);
+      } else {
+        delete strip.dataset.dragging;
+      }
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up, { once: true });
+    window.addEventListener('pointercancel', up, { once: true });
+  });
+
+  // ── Visor de obra ampliada (idéntico patrón al del FotoSlider) ───────────────
+  const visor = document.getElementById('visor') as HTMLDialogElement;
+  const visorImg = document.getElementById('visor-img') as HTMLImageElement;
+
+  strip.querySelectorAll<HTMLButtonElement>('[data-obra]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (dragged) return; // un arrastre que termina sobre la obra no la abre
+      const img = btn.querySelector('img')!;
+      visorImg.src = img.src;
+      visorImg.alt = img.alt;
+      visor.showModal();
+    });
+  });
+
+  document.getElementById('visor-cerrar')?.addEventListener('click', () => visor.close());
+  // clic fuera de la imagen (en el fondo) también cierra
+  visor.addEventListener('click', (e) => {
+    if (e.target === visor) visor.close();
+  });
+</script>

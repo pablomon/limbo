@@ -1,0 +1,51 @@
+---
+// ─── COMPONENTE Footer (pie de página) ───────────────────────────────────────
+// Un componente reutilizable: el Layout lo coloca al final de cada página, así
+// que solo lo escribimos una vez. No es una ruta (no está en src/pages/).
+
+interface Props {
+  dark?: boolean; // tema oscuro o claro, igual que en el resto
+}
+const { dark = false } = Astro.props;
+
+// Astro.url es la URL de la página que se está generando. Con esto sabemos en
+// qué página estamos para resaltar su enlace en el pie.
+// .replace(/\/$/, '') quita una barra final si la hay (/nosotros/ → /nosotros),
+// y `|| '/'` evita que la home ('') quede como cadena vacía.
+const path = Astro.url.pathname.replace(/\/$/, '') || '/';
+
+// Los enlaces se declaran como DATOS (un array de objetos), no como HTML
+// repetido. Abajo los recorremos con .map(). Si mañana cambia un enlace, se
+// toca aquí y se actualiza en todo el pie automáticamente.
+const links = [
+  { href: '/nosotros', label: 'Nosotros' },
+  { href: '/mezcales', label: 'Nuestros mezcales' },
+  { href: '/proceso', label: 'Proceso' },
+  { href: '/convocatoria', label: 'Convocatoria' },
+  { href: '/compra', label: 'Compra aquí' },
+];
+
+// Función que devuelve las clases de un enlace. La sacamos a una función porque
+// la lógica se repite para cada enlace: clases base + un color que depende de si
+// es la página actual (terracotta) o no (según el tema).
+const linkClass = (href: string) =>
+  [
+    'font-display text-[10px] font-semibold uppercase tracking-nav transition-colors hover:text-terracotta',
+    path === href ? 'text-terracotta' : dark ? 'text-cream' : 'text-ink',
+  ].join(' '); // .join(' ') une el array en una sola cadena de clases.
+
+// El logo cambia de color según el tema (versión blanca sobre fondo oscuro).
+const logo = dark ? '/images/logo-white.png' : '/images/logo-black.png';
+---
+
+<footer class:list={['py-10', dark ? 'bg-ink' : 'bg-cream']}>
+  <a href="/" class="mx-auto block w-fit" aria-label="Limbo Mezcal — inicio">
+    <img src={logo} alt="Limbo Mezcal" class="h-12 w-auto" />
+  </a>
+  <nav class="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 px-5" aria-label="Pie de página">
+    <!-- {links.map(...)} genera un <a> por cada objeto del array. Es como un
+         bucle for que devuelve HTML. `class={linkClass(l.href)}` llama a la
+         función de arriba para calcular las clases de ESE enlace concreto. -->
+    {links.map((l) => <a href={l.href} class={linkClass(l.href)}>{l.label}</a>)}
+  </nav>
+</footer>
