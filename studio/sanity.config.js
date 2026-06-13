@@ -7,7 +7,7 @@ export default defineConfig({
   name: 'default',
   title: 'limbo',
 
-  projectId: '86i1g2pv',
+  projectId: '6ikhc7g5',
   dataset: 'production',
 
   plugins: [structureTool(), visionTool()],

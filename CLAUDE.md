@@ -26,7 +26,7 @@ npm run preview   # preview the production build locally
 Copy `.env.example` to `.env` and fill in your Sanity project details:
 
 ```
-PUBLIC_SANITY_PROJECT_ID=  # from sanity.io/manage
+PUBLIC_SANITY_PROJECT_ID=6ikhc7g5
 PUBLIC_SANITY_DATASET=production
 ```
 

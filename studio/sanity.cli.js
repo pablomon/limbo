@@ -2,15 +2,11 @@ import {defineCliConfig} from 'sanity/cli'
 
 export default defineCliConfig({
   api: {
-    projectId: '86i1g2pv',
+    projectId: '6ikhc7g5',
     dataset: 'production'
   },
   deployment: {
-    /**
-     * Auto-updates disabled: we deploy via git/Vercel, so the studio bundle
-     * should be self-contained and not fetch an update manifest at build time
-     * (that network step fails in CI).
-     */
+    appId: 'mgs7dat2w2c1lwy1v7qqxg2a',
     autoUpdates: false,
   }
 })

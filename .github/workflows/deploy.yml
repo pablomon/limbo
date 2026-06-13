@@ -1,0 +1,73 @@
+# ─── Despliegue a Hostinger ────────────────────────────────────────────────────
+# Sustituye lo que antes hacía Vercel: construir el sitio y subirlo. Aquí GitHub
+# Actions (gratis) hace el `npm run build` y sube la carpeta dist/ a Hostinger
+# por SSH (rsync). Una sola tubería sirve para producción y para staging, según
+# la rama desde la que se dispare.
+#
+#   push a main  → build → sube a la raíz de producción  (limbomezcal.com)
+#   push a pre   → build → sube a la carpeta del subdominio (pre.limbomezcal.com)
+name: Deploy to Hostinger
+
+# ── Cuándo se ejecuta ──
+on:
+  push:
+    branches: [main, pre] # cada push a estas ramas despliega su entorno
+  workflow_dispatch: {} # permite lanzarlo a mano desde la pestaña Actions
+  repository_dispatch: # lo usará el webhook de Sanity (publicar → redeploy)
+    types: [content-published]
+
+# Si llegan dos pushes seguidos a la misma rama, cancela el despliegue anterior:
+# así no se pisan dos rsync a la vez sobre el mismo destino.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest # máquina temporal de GitHub donde corre todo
+    steps:
+      # 1. Trae el código del repo a la máquina de Actions.
+      - uses: actions/checkout@v4
+
+      # 2. Instala Node. Lee la versión de .nvmrc (22) para no duplicar el dato.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm # cachea node_modules entre runs → más rápido
+
+      # 3. Instala dependencias de forma reproducible (usa package-lock.json).
+      - run: npm ci
+
+      # 4. Construye el sitio estático en dist/. Las variables de Sanity se
+      #    inyectan desde los secrets (el sitio las lee en build).
+      - run: npm run build
+        env:
+          PUBLIC_SANITY_PROJECT_ID: ${{ secrets.PUBLIC_SANITY_PROJECT_ID }}
+          PUBLIC_SANITY_DATASET: ${{ secrets.PUBLIC_SANITY_DATASET }}
+
+      # 5. Elige la carpeta destino en Hostinger según la rama:
+      #    main → producción, cualquier otra (pre) → staging.
+      - name: Elegir ruta destino
+        id: target
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "path=${{ secrets.HOSTINGER_PATH_PROD }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=${{ secrets.HOSTINGER_PATH_PRE }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # 6. Sube dist/ por SSH con rsync.
+      #    OJO con --delete: borra en el destino lo que no esté en dist/, para
+      #    dejar la carpeta como un espejo exacto del build. Es lo correcto si la
+      #    ruta apunta EXACTAMENTE al document root del sitio; si apuntara a otro
+      #    sitio, borraría cosas. Por eso probamos primero en `pre`.
+      - name: Subir a Hostinger (rsync por SSH)
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -p "${{ secrets.HOSTINGER_SSH_PORT }}" "${{ secrets.HOSTINGER_SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+          rsync -avz --delete \
+            -e "ssh -p ${{ secrets.HOSTINGER_SSH_PORT }} -i ~/.ssh/id_deploy" \
+            dist/ \
+            "${{ secrets.HOSTINGER_SSH_USER }}@${{ secrets.HOSTINGER_SSH_HOST }}:${{ steps.target.outputs.path }}/"
