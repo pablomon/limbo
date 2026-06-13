@@ -5,11 +5,13 @@ export default defineType({
   title: 'Landing Page',
   type: 'document',
   fields: [
-    defineField({name: 'title', type: 'string', title: 'Title', validation: (r) => r.required()}),
-    defineField({name: 'subtitle', type: 'text', title: 'Subtitle'}),
-    defineField({name: 'ctaLabel', type: 'string', title: 'CTA Button Label'}),
-    defineField({name: 'ctaUrl', type: 'url', title: 'CTA URL'}),
-    defineField({name: 'heroImage', type: 'image', title: 'Hero Image', options: {hotspot: true}}),
+    defineField({
+      name: 'lema',
+      title: 'Lema',
+      type: 'text',
+      description: 'Frase de marca que aparece en la banda verde de la home.',
+    }),
   ],
+  // Solo permitir editar y publicar — no crear ni borrar (es un singleton)
   __experimental_actions: ['update', 'publish'],
 })

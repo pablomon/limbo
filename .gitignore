@@ -26,5 +26,11 @@ pnpm-debug.log*
 # claude code local settings
 .claude/settings.local.json
 
-# design reference (13MB PDF) — kept local, not versioned. Use Git LFS if needed.
-cliente/
+# SSH / private keys — never commit credentials to the repo
+hostinger_deploy*
+*.pem
+id_rsa*
+id_ed25519*
+
+# Nota: la carpeta de diseño (PDF) ahora vive FUERA del repo, en el contenedor
+# /Users/pablomon/limbo/diseño, así que git ya no la ve y no hace falta ignorarla.
