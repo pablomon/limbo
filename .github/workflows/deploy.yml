@@ -67,9 +67,6 @@ jobs:
           printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
           ssh-keyscan -p "${{ secrets.HOSTINGER_SSH_PORT }}" "${{ secrets.HOSTINGER_SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
-          ssh -p "${{ secrets.HOSTINGER_SSH_PORT }}" -i ~/.ssh/id_deploy \
-            "${{ secrets.HOSTINGER_SSH_USER }}@${{ secrets.HOSTINGER_SSH_HOST }}" \
-            "echo SSH_OK" 2>&1
           rsync -avz --delete \
             -e "ssh -p ${{ secrets.HOSTINGER_SSH_PORT }} -i ~/.ssh/id_deploy" \
             dist/ \
